@@ -9,41 +9,58 @@ from drf_spectacular.utils import extend_schema
 
 from apps.users.models import UserStats
 from apps.users.models import BaseUser
-from apps.utils.otp import generate_and_store_otp, verify_otp
+from apps.utils.otp import generate_and_store_otp, verify_otp, limit_otp
 
 
 class LoginView(APIView):
 
-    class InputSerializer(serializers.Serializer):
-        mobile = serializers.CharField(max_length=15)
+    class LoginInputSerializer(serializers.Serializer):
+        mobile = serializers.CharField(max_length=13)
+
+        def validate_mobile(self, value):
+            if not value.startswith('+98'):
+                raise serializers.ValidationError("Mobile number must start with '+98'.")
+            if len(value) != 13:
+                raise serializers.ValidationError("Mobile number must be exactly 13 characters long.")
+            return value
 
     @extend_schema(
-        request=InputSerializer,
+        request=LoginInputSerializer,
     )
     def post(self, request):
-        serializer = self.InputSerializer(data=request.data)
+        serializer = self.LoginInputSerializer(data=request.data)
         if serializer.is_valid():
             mobile = serializer.validated_data['mobile']
             user, created = BaseUser.objects.get_or_create(mobile=mobile)
             UserStats.objects.get_or_create(user=user)
-            otp = generate_and_store_otp(mobile)
-            print(otp)
-            return Response({"message": "OTP generated", "mobile": mobile}, status=status.HTTP_201_CREATED)
+            if limit_otp(mobile):
+                return Response({"message": "Existing OTP still valid", "mobile": mobile}, status=status.HTTP_200_OK)
+
+            generate_and_store_otp(mobile)
+            return Response({"message": "OTP generated", "mobile": mobile}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class VerifyOTPView(APIView):
     permission_classes = [permissions.AllowAny]
 
-    class InputSerializer(serializers.Serializer):
-        mobile = serializers.CharField(max_length=15)
+    class VerifyOTPInputSerializer(serializers.Serializer):
+        mobile = serializers.CharField(max_length=13)
         otp = serializers.CharField(max_length=6)
 
+        def validate_mobile(self, value):
+            if not value.startswith('+98'):
+                raise serializers.ValidationError("Mobile number must start with '+98'.")
+            if len(value) != 13:
+                raise serializers.ValidationError("Mobile number must be exactly 13 characters long.")
+            return value
+
+
     @extend_schema(
-        request=InputSerializer,
+        request=VerifyOTPInputSerializer,
     )
     def post(self, request):
-        serializer = self.InputSerializer(data=request.data)
+        serializer = self.VerifyOTPInputSerializer(data=request.data)
         if serializer.is_valid():
             mobile = serializer.validated_data['mobile']
             otp = serializer.validated_data['otp']

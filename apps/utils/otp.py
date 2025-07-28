@@ -12,6 +12,15 @@ redis_client = redis.Redis(
     decode_responses=True
 )
 
+
+def limit_otp(mobile: str) -> bool:
+    existing_otp = redis_client.get(f"otp:{mobile}")
+    ttl = redis_client.ttl(f"otp:{mobile}") if existing_otp else 0
+    if existing_otp and ttl > 0:
+        logger.info(f"OTP [{mobile}] -> [{existing_otp}]")
+        return True
+    return False
+
 def generate_and_store_otp(mobile: str) -> str:
     otp = str(random.randint(100000, 999999))
     redis_client.setex(f"otp:{mobile}", 300, otp)
@@ -24,3 +33,4 @@ def verify_otp(mobile: str, otp: str) -> bool:
         redis_client.delete(f"otp:{mobile}")
         return True
     return False
+
