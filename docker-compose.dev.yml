@@ -1,0 +1,22 @@
+version: '3'
+services:
+  db:
+    image: postgres:15beta3-alpine
+    restart: always
+    volumes:
+      - ./db_volume/data/:/var/lib/postgresql/data:rw
+    environment:
+      - POSTGRES_PASSWORD=dev_pass
+      - POSTGRES_USER=dev_user
+      - POSTGRES_DB=backend
+    ports:
+      - "8526:5432"
+
+  redis:
+    image: redis:7.0.4-alpine
+    restart: always
+    ports:
+      - "1914:6379"
+
+volumes:
+  db_volume:
