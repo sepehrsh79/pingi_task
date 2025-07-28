@@ -7,8 +7,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from drf_spectacular.utils import extend_schema
 
-from apps.users.models import UserStats
 from apps.users.models import BaseUser
+from apps.users.selectors import get_or_create_user, get_or_create_user_stats
 from apps.utils.otp import generate_and_store_otp, verify_otp, limit_otp
 
 
@@ -31,8 +31,12 @@ class LoginView(APIView):
         serializer = self.LoginInputSerializer(data=request.data)
         if serializer.is_valid():
             mobile = serializer.validated_data['mobile']
-            user, created = BaseUser.objects.get_or_create(mobile=mobile)
-            UserStats.objects.get_or_create(user=user)
+            try:
+                user = get_or_create_user(mobile=mobile)
+                get_or_create_user_stats(user_id=user.id)
+            except Exception as e:
+                return Response({"message": "Cant Create User right now.", "mobile": mobile}, status=status.HTTP_200_OK)
+
             if limit_otp(mobile):
                 return Response({"message": "Existing OTP still valid", "mobile": mobile}, status=status.HTTP_200_OK)
 

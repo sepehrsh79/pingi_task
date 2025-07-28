@@ -7,11 +7,11 @@ from django.contrib.auth.models import PermissionsMixin
 
 
 class BaseUserManager(BUM):
-    def create_user(self, email, is_active=True, is_admin=False, password=None):
-        if not email:
-            raise ValueError("Users must have an email address")
+    def create_user(self, mobile, is_active=True, is_admin=False, password=None):
+        if not mobile:
+            raise ValueError("Users must have an mobile")
 
-        user = self.model(email=self.normalize_email(email.lower()), is_active=is_active, is_admin=is_admin)
+        user = self.model(mobile=mobile, is_active=is_active, is_admin=is_admin)
 
         if password is not None:
             user.set_password(password)
