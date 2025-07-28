@@ -38,6 +38,7 @@ LOCAL_APPS = [
     'apps.common.apps.CommonConfig',
     'apps.users.apps.UsersConfig',
     'apps.authentication.apps.AuthenticationConfig',
+    'apps.core.apps.CoreConfig',
 ]
 
 THIRD_PARTY_APPS = [
@@ -178,3 +179,6 @@ LOGGING = {
         },
     },
 }
+
+# Default to 7 days
+JWT_EXPIRATION_DELTA_SECONDS = env("JWT_EXPIRATION_DELTA_SECONDS", default=60 * 60 * 24 * 7)
